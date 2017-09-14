@@ -40,7 +40,7 @@ func APIregist(r *fasthttprouter.Router) {
 
 ## Related Project
 
-* [fasthttp](htts://github.com/valyala/fasthttp)
+* [fasthttp](https://github.com/valyala/fasthttp)
 * [fasthttprouter](https://github.com/buaazp/fasthttprouter)
 
 ## Inspired by
