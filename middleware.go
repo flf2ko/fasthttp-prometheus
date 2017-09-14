@@ -60,7 +60,7 @@ func (p *Prometheus) WrapHandler(r *fasthttprouter.Router) fasthttp.RequestHandl
 		respSize := float64(len(ctx.Response.Body()))
 
 		p.reqDur.WithLabelValues(status).Observe(elapsed)
-		p.reqCnt.WithLabelValues(status, string(ctx.Method()), string(ctx.Request.URI().Path())).Inc()
+		p.reqCnt.WithLabelValues(status, string(ctx.Method())).Inc()
 		p.reqSize.Observe(float64(<-reqSize))
 		p.respSize.Observe(respSize)
 	}
@@ -99,7 +99,7 @@ func (p *Prometheus) registerMetrics(subsystem string) {
 			Name:      "requests_total",
 			Help:      "How many HTTP requests processed, partitioned by status code and HTTP method.",
 		},
-		[]string{"code", "method", "handler"},
+		[]string{"code", "method"},
 	)
 
 	p.reqDur = prometheus.NewHistogramVec(
