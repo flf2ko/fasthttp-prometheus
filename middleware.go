@@ -44,7 +44,7 @@ func (p *Prometheus) WrapHandler(r *fasthttprouter.Router) fasthttp.RequestHandl
 	r.GET(p.MetricsPath, prometheusHandler())
 
 	return func(ctx *fasthttp.RequestCtx) {
-		if ctx.Request.URI().String() == defaultMetricPath {
+		if string(ctx.Request.URI().Path()) == defaultMetricPath {
 			r.Handler(ctx)
 			return
 		}
