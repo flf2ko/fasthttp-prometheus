@@ -67,7 +67,6 @@ func (p *Prometheus) WrapHandler(r *fasthttprouter.Router) fasthttp.RequestHandl
 }
 
 // Idea is from https://github.com/DanielHeckrath/gin-prometheus/blob/master/gin_prometheus.go and https://github.com/zsais/go-gin-prometheus/blob/master/middleware.go
-// Not include HTTP protocol version string length
 func computeApproximateRequestSize(ctx *fasthttp.RequestCtx, out chan int) {
 	s := 0
 	if ctx.Request.URI() != nil {
@@ -76,6 +75,7 @@ func computeApproximateRequestSize(ctx *fasthttp.RequestCtx, out chan int) {
 	}
 	s += len(ctx.Method())
 	s += len("HTTP/1.1")
+
 	ctx.Request.Header.VisitAll(func(key, value []byte) {
 		if string(key) != "Host" {
 			s += len(key) + len(value)
@@ -97,7 +97,7 @@ func (p *Prometheus) registerMetrics(subsystem string) {
 		prometheus.CounterOpts{
 			Subsystem: subsystem,
 			Name:      "requests_total",
-			Help:      "How many HTTP requests processed, partitioned by status code and HTTP method.",
+			Help:      "The HTTP request counts processed.",
 		},
 		[]string{"code", "method"},
 	)
