@@ -76,8 +76,11 @@ func computeApproximateRequestSize(ctx *fasthttp.RequestCtx, out chan int) {
 	s += len(ctx.Method())
 	s += len("HTTP/1.1")
 
-	ctx.Request.Header.VisitAll(func(key, value []byte) {
-		if key != nil && string(key) != "Host" {
+	copyRequestHeader := new(fasthttp.RequestHeader)
+	ctx.Request.Header.CopyTo(copyRequestHeader)
+
+	copyRequestHeader.VisitAll(func(key, value []byte) {
+		if string(key) != "Host" {
 			s += len(key) + len(value)
 		}
 	})
