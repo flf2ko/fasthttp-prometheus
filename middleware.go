@@ -2,6 +2,7 @@ package fasthttpprometheus
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/buaazp/fasthttprouter"
@@ -11,7 +12,10 @@ import (
 	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
-var defaultMetricPath = "/metrics"
+var (
+	defaultMetricPath  = "/metrics"
+	requestHandlerPool sync.Pool
+)
 
 type FasthttpHandlerFunc func(*fasthttp.RequestCtx)
 
@@ -50,7 +54,9 @@ func (p *Prometheus) WrapHandler(r *fasthttprouter.Router) fasthttp.RequestHandl
 		}
 
 		reqSize := make(chan int)
-		go computeApproximateRequestSize(ctx, reqSize)
+		frc := acquireRequestFromPool()
+		ctx.Request.CopyTo(frc)
+		go computeApproximateRequestSize(frc, reqSize)
 
 		start := time.Now()
 		r.Handler(ctx)
@@ -67,26 +73,24 @@ func (p *Prometheus) WrapHandler(r *fasthttprouter.Router) fasthttp.RequestHandl
 }
 
 // Idea is from https://github.com/DanielHeckrath/gin-prometheus/blob/master/gin_prometheus.go and https://github.com/zsais/go-gin-prometheus/blob/master/middleware.go
-func computeApproximateRequestSize(ctx *fasthttp.RequestCtx, out chan int) {
+func computeApproximateRequestSize(ctx *fasthttp.Request, out chan int) {
 	s := 0
-	if ctx.Request.URI() != nil {
-		s += len(ctx.Request.URI().Path())
-		s += len(ctx.Request.URI().Host())
+	if ctx.URI() != nil {
+		s += len(ctx.URI().Path())
+		s += len(ctx.URI().Host())
 	}
-	s += len(ctx.Method())
+	
+	s += len(ctx.Header.Method())
 	s += len("HTTP/1.1")
 
-	copyRequestHeader := new(fasthttp.RequestHeader)
-	ctx.Request.Header.CopyTo(copyRequestHeader)
-
-	copyRequestHeader.VisitAll(func(key, value []byte) {
+	ctx.Header.VisitAll(func(key, value []byte) {
 		if string(key) != "Host" {
 			s += len(key) + len(value)
 		}
 	})
 
-	if ctx.Request.Header.ContentLength() != -1 {
-		s += ctx.Request.Header.ContentLength()
+	if ctx.Header.ContentLength() != -1 {
+		s += ctx.Header.ContentLength()
 	}
 
 	out <- s
@@ -132,4 +136,15 @@ func (p *Prometheus) registerMetrics(subsystem string) {
 	)
 
 	prometheus.MustRegister(p.reqCnt, p.reqDur, p.reqSize, p.respSize)
+}
+
+func acquireRequestFromPool() *fasthttp.Request {
+	rp := requestHandlerPool.Get()
+
+	if rp == nil {
+		return new(fasthttp.Request)
+	} 
+	
+	frc := rp.(*fasthttp.Request)
+	return frc
 }
