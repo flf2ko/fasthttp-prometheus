@@ -1,14 +1,15 @@
 package fasthttpprometheus
 
 import (
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/fasthttp/router"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fasthttp/fasthttpadaptor"
-	"strconv"
-	"sync"
-	"time"
 )
 
 var (
@@ -22,7 +23,6 @@ type Prometheus struct {
 	reqCnt            *prometheus.CounterVec
 	reqDur            *prometheus.HistogramVec
 	reqSize, respSize prometheus.Summary
-	router            *router.Router
 
 	MetricsPath string
 }
